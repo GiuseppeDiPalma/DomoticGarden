@@ -17,6 +17,8 @@ def lambda_handler(event, context):
     response = greenhouseTable.scan()
     items = response['Items']
 
+    measurementOutputSensorTable = dynamodb.Table('measurement')
+    
     for i in items:
         plant = i['plant']
         light = i['light(lx)']
@@ -26,7 +28,6 @@ def lambda_handler(event, context):
         print(f"Plant: {plant} Light: {light} Temperature: {temperature} Moisture: {moisture} Measure_date: {measure_date}")
         activationDate = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
-        measurementOutputSensorTable = dynamodb.Table('measurements')
         #per regolare umidità attiviamo innaffiatoio
         if moisture < 50:
             randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
