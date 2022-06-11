@@ -1,28 +1,28 @@
-import json
 import telebot
 import boto3
 
-CHAT_ID = ''
 TOKEN = ''
-WBH_URL = ''
+CHAT_ID = ''
+
+bt = telebot.TeleBot(TOKEN)
 
 
-def lambda_handler(event, context):
-    bot = telebot.TeleBot(TOKEN)
+# Handle '/start' and '/help'
+@bt.message_handler(commands=['help'])
+def send_welcome(message):
+    bt.reply_to(message, """\
+    ✋/help - write this help
+    🌱/plants - write this help
+    🎍/addPlant - write this help
+    💧/oSensor - write this help
+    🌡/iSensor - write this help
+    🔛/ONSensor - write this help
+    🚫/OFFSensor - write this help\
+    """)
+    #bot.send_message(CHAT_ID, "Howdy, how are you doing?")
+"""\
+Hi there, I am EchoBot.
+I am here to echo your kind words back to you. Just say anything nice and I'll say the exact same thing to you!\
+"""
 
-    message = json.loads(event['body'])['message']
-    rcv_message = message['text']
-    message_username = message['from']['username']
-
-    if rcv_message.lower().strip() == "/help":
-        existing_commands = """
-        These are the commands you can ask to me:\n
-        /time to get the current hour. \n
-        /add to insert new items on your grocery shoplist.
-        """.strip()
-        bot.send_message(CHAT_ID, existing_commands)
-    
-    elif rcv_message.lower().strip() == "/test":
-        bot.send_message(CHAT_ID, "TEST MESSAGE!")
-        bot.send_message(CHAT_ID, "rcv_message: " + rcv_message)
-        bot.send_message(CHAT_ID, "username: " + message_username)
+bt.polling()
