@@ -1,8 +1,12 @@
+from dotenv import load_dotenv
+import os
 import telebot
 import boto3
 
-TOKEN = ''
-CHAT_ID = ''
+load_dotenv()
+
+TOKEN = os.environ['TOKEN']
+CHAT_ID = os.environ['CHAT_ID']
 
 bt = telebot.TeleBot(TOKEN)
 
