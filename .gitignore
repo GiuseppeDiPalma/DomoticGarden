@@ -3,3 +3,4 @@ GiuseppeDiPalma_sciot-proposal.pdf
 .vscode/
 *.zip
 *.sh
+.env
