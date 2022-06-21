@@ -4,3 +4,4 @@ GiuseppeDiPalma_sciot-proposal.pdf
 *.zip
 *.sh
 .env
+.removed/

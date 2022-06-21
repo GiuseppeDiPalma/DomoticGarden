@@ -9,8 +9,8 @@ sqsName = parser.parse_args()
 
 
 sqs = boto3.resource('sqs', endpoint_url=url)
-
-for plant in sqsName.queue_name:
+plants = ['basil', 'chilli', 'tomato']
+for plant in plants:
     queue = sqs.create_queue(QueueName=plant)
     print(queue.url)
 
