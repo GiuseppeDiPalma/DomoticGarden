@@ -15,11 +15,18 @@ def get_all_queues_name():
 
 queueNameList = get_all_queues_name()
 
+#split the queue name into userID and plantID
+def split_queue_name(queueName):
+    userID = queueName.split('_')[0]
+    plantID = queueName.split('_')[1]
+    return userID, plantID
+
 if len(queueNameList) == 0:
     print('No queue found!')
     print('Create queues with the /start command on the telegram bot.')
 else :
     for queueName in queueNameList:
+        plant, userID= split_queue_name(queueName)
         measure_date = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         
         if queueName == 'error':
@@ -31,6 +38,6 @@ else :
             light = random.randint(0, 100)
             temperature = round(random.uniform(-5.0, 30.0), 2) #quantità
 
-            msg_body = '{"plant": "' + queueName + '", "measure_date": "' + str(measure_date) + '", "temperature(°)": "' + str(temperature) + '", "moisture(%)": "' + str(moisture) + '", "light(lx)": "' + str(light) + '"}'
-            print(msg_body)
+            msg_body = '{"plant": "' + plant + '", "userID": "' + userID + '", "measure_date": "' + str(measure_date) + '", "temperature(°)": "' + str(temperature) + '", "moisture(%)": "' + str(moisture) + '", "light(lx)": "' + str(light) + '"}'
+            print(f"Message send: {msg_body}")
             queue.send_message(MessageBody=msg_body)

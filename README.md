@@ -27,7 +27,23 @@ on the cultivation of pot plants.
 
 #### 🎈 How does it work?
 
-Sensors, placed inside the small balcony greenhouse, collect data and send it to a queue. The data will be routed to two lambda functions: the first function will take care of storing the data in DynamoDB, the second will take care of sending the data, via telegram channel(or bot), to the end user. In addition, this function can activate/deactivate the output sensors by capturing a particular state of the data.  
+Sensors, placed inside the small balcony greenhouse, collect data and send it to a queue. The data will be routed to two lambda functions: the first function will take care of storing the data in DynamoDB, the second will take care of sending the data, via telegram channel(or bot), to the end user. In addition, this function can activate/deactivate the output sensors by capturing a particular state of the data.
+
+```python
+python settings/telegram-bot/telegramBot.py
+```
+
+On bot [telegramBot](https://t.me/domoticgarden_bot) start, in case it was already started give **/start**
+
+Upload lambda function and test it:
+```python
+python settings/telegram-bot/telegramBot.py
+```
+
+To simulate the measurements of home automation devices manually give: 
+```python
+python settings/iotDevice.py
+```
 
 #### This is a view of the general infrastructure
 

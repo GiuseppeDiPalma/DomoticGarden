@@ -4,19 +4,42 @@ url = 'http://localhost:4566'
 
 dynamoDb = boto3.resource('dynamodb', endpoint_url=url)
 
+dynamoDb = boto3.resource('dynamodb', endpoint_url=url)
 greenhouseTable = dynamoDb.create_table(
     TableName='greenhouse',
     KeySchema=[
         {
-            'AttributeName': 'plant',
+            'AttributeName': 'id',
             'KeyType': 'HASH'
         }
     ],
     AttributeDefinitions=[
         {
-            'AttributeName': 'plant',
+            'AttributeName': 'id',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'userID',
             'AttributeType': 'S'
         }
+    ],
+    GlobalSecondaryIndexes=[
+        {
+            'IndexName': 'cid-index',
+            'KeySchema': [
+                {
+                    'AttributeName': 'userID',
+                    'KeyType': 'HASH',
+                },
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 2,
+                'WriteCapacityUnits': 2,
+            }
+        },
     ],
     ProvisionedThroughput={
         'ReadCapacityUnits': 10,
@@ -28,7 +51,7 @@ measurementOutputSensorTable = dynamoDb.create_table(
     TableName='measurement',
     KeySchema=[
         {
-            'AttributeName': 'measureID',
+              'AttributeName': 'measureID',
             'KeyType': 'HASH'
         }
     ],
