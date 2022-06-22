@@ -1,17 +1,8 @@
-from venv import create
 from dotenv import load_dotenv
-import os
-import sys
+from boto3.dynamodb.conditions import Key
+import os, datetime, random, string, json
 import telebot
 import boto3
-import logging
-import datetime
-import random
-import string
-from boto3.dynamodb.conditions import Key
-
-logger = telebot.logger
-telebot.logger.setLevel(logging.INFO)
 
 load_dotenv()
 plants = ['basil', 'chilli', 'tomato']
@@ -200,7 +191,6 @@ def plants_command(message):
             if key == 'measure_date':
                 measuredate_plant_list.append(value)
 
-    # print(measuredate_plant_list)
     unique = unique_item_list(name_plant_list)
     one_string = ' 🌱 '.join(unique).upper()
     bot.send_message(cid, f"Your plants in the greenhouse: {one_string}")
@@ -213,6 +203,15 @@ def oSensor_command(message):
 
 @bot.message_handler(commands=['iSensor'])
 def iSensor_command(message):
+    #invoke lambda function
+    cid = message.chat.id
+    lambda_client = boto3.client('lambda')
+    response = lambda_client.invoke(
+        FunctionName='iot_lambda_function',
+        InvocationType='RequestResponse',
+        Payload=json.dumps({'cid': cid})
+    )
+    print(response)
     bot.reply_to(message, f"Hai scelto il comando {message.text}")
 
 
