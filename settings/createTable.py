@@ -9,13 +9,13 @@ greenhouseTable = dynamoDb.create_table(
     TableName='greenhouse',
     KeySchema=[
         {
-            'AttributeName': 'id',
+            'AttributeName': 'plant_id',
             'KeyType': 'HASH'
         }
     ],
     AttributeDefinitions=[
         {
-            'AttributeName': 'id',
+            'AttributeName': 'plant_id',
             'AttributeType': 'S'
         },
         {

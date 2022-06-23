@@ -1,9 +1,11 @@
 import string, random, datetime, json
 import boto3
 
+#split the queue name into userID and plantID
 def split_queue_name(queueName):
-    plantID = queueName.split('_')[0]
-    return plantID
+    userID = queueName.split('_')[0]
+    plantID = queueName.split('_')[1]
+    return userID, plantID
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -27,14 +29,16 @@ def lambda_handler(event, context):
 
 
     for plant in plantList:
-        plant_name = split_queue_name(plant)
+        plant_name, plant_id = split_queue_name(plant)
+        print(f"Plant: {plant_name} | ID: {plant_id}")
+        plant_id = plant_name + '_' + str(plant_id)
         queue = sqs.get_queue_by_name(QueueName=plant)
         messages = []
         while True:
             # response = queue.receive_messages(MaxNumberOfMessages=10, VisibilityTimeout=10, WaitTimeSeconds=10)
             response = queue.receive_messages()
             if len(response) == 0:
-                print(f'NO MESSAGE FOUND ON: [{plant}]')
+                print(f'NO MESSAGE FOUND ON QUEUE: [{plant}]')
                 break
             else:
                 messages.extend(response)
@@ -45,9 +49,8 @@ def lambda_handler(event, context):
 
                     message.delete()
                     item = {
-                        'id':id_generator(5),
+                        'plant_id':plant_id,
                         'userID': content['userID'],
-                        'plant': plant_name,
                         'measure_date': str(measure_date),
                         'temperature(°)': content['temperature(°)'],
                         'moisture(%)': content['moisture(%)'],
@@ -55,4 +58,4 @@ def lambda_handler(event, context):
                     }
                     greenhouseTable.put_item(Item=item)
 
-lambda_handler(None, None)
+#lambda_handler(None, None)

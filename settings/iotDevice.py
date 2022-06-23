@@ -38,6 +38,7 @@ else :
             light = random.randint(0, 100)
             temperature = round(random.uniform(-5.0, 30.0), 2) #quantità
 
-            msg_body = '{"plant": "' + plant + '", "userID": "' + userID + '", "measure_date": "' + str(measure_date) + '", "temperature(°)": "' + str(temperature) + '", "moisture(%)": "' + str(moisture) + '", "light(lx)": "' + str(light) + '"}'
+            #msg_body = '{"plant": "' + plant + '", "userID": "' + userID + '", "measure_date": "' + str(measure_date) + '", "temperature(°)": "' + str(temperature) + '", "moisture(%)": "' + str(moisture) + '", "light(lx)": "' + str(light) + '"}'
+            msg_body = '{"plant_id": "' + queueName + '", "userID": "' + userID + '", "measure_date": "' + str(measure_date) + '", "temperature(°)": "' + str(temperature) + '", "moisture(%)": "' + str(moisture) + '", "light(lx)": "' + str(light) + '"}'
             print(f"Message send: {msg_body}")
             queue.send_message(MessageBody=msg_body)

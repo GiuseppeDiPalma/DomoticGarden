@@ -12,62 +12,61 @@ url = 'http://localhost:4566'
 
 bot = telebot.TeleBot(TOKEN)
 
-
 def create_table():
     dynamoDb = boto3.resource('dynamodb', endpoint_url=url)
     greenhouseTable = dynamoDb.create_table(
-        TableName='greenhouse',
-        KeySchema=[
-            {
-                'AttributeName': 'id',
-                'KeyType': 'HASH'
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'id',
-                'AttributeType': 'S'
-            },
-            {
-                'AttributeName': 'userID',
-                'AttributeType': 'S'
-            }
-        ],
-        GlobalSecondaryIndexes=[
-            {
-                'IndexName': 'cid-index',
-                'KeySchema': [
-                    {
-                        'AttributeName': 'userID',
-                        'KeyType': 'HASH',
-                    },
-                ],
-                'Projection': {
-                    'ProjectionType': 'ALL',
-                },
-                'ProvisionedThroughput': {
-                    'ReadCapacityUnits': 10,
-                    'WriteCapacityUnits': 10,
-                }
-            },
-        ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 10,
-            'WriteCapacityUnits': 10
+    TableName='greenhouse',
+    KeySchema=[
+        {
+            'AttributeName': 'plant_id',
+            'KeyType': 'HASH'
         }
-    )
+    ],
+    AttributeDefinitions=[
+        {
+            'AttributeName': 'plant_id',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'userID',
+            'AttributeType': 'S'
+        }
+    ],
+    GlobalSecondaryIndexes=[
+        {
+            'IndexName': 'cid-index',
+            'KeySchema': [
+                {
+                    'AttributeName': 'userID',
+                    'KeyType': 'HASH',
+                },
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 2,
+                'WriteCapacityUnits': 2,
+            }
+        },
+    ],
+    ProvisionedThroughput={
+        'ReadCapacityUnits': 10,
+        'WriteCapacityUnits': 10
+    }
+)
 
     measurementOutputSensorTable = dynamoDb.create_table(
         TableName='measurement',
         KeySchema=[
             {
-                'AttributeName': 'measureID',
+                'AttributeName': 'sensor_id',
                 'KeyType': 'HASH'
             }
         ],
         AttributeDefinitions=[
             {
-                'AttributeName': 'measureID',
+                'AttributeName': 'sensor_id',
                 'AttributeType': 'S'
             }
         ],
@@ -79,7 +78,13 @@ def create_table():
     print("Table status: ", greenhouseTable.table_status)
     print("Table status: ", measurementOutputSensorTable.table_status)
 
-def query_data_dynamodb(table, indexName, columnName, userID):
+def query_data_dynamodb(table):
+    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
+    measurementTable = dynamodb.Table(table)
+    response = measurementTable.scan()
+    return response['Items']
+
+def query_data_dynamodb_gsi(table, indexName, columnName, userID):
     dynamodb = boto3.resource('dynamodb', endpoint_url=url)
     table = dynamodb.Table(table)
     response = table.query(
@@ -104,10 +109,10 @@ def loadData(cid):
         moisture = random.randint(0, 100)
         light = random.randint(0, 100)
         temperature = round(random.uniform(-5.0, 30.0), 2)
+        plant_id = plants[i] + '_' + str(cid)
         item = {
-            'id': id_generator(5),
+            'plant_id': str(plant_id),
             'userID': str(cid),
-            'plant': plants[i],
             'measure_date': str(measure_date),
             'temperature(°)': str(temperature),
             'moisture(%)': str(moisture),
@@ -116,13 +121,11 @@ def loadData(cid):
         greenhouseTable.put_item(Item=item)
         print("Add item: ", item)
 
-def unique_item_list(list):
-    unique_list = []
-    for x in list:
-        if x not in unique_list:
-            unique_list.append(x)
-    return unique_list
-
+def split_queue_name(queueName):
+    userID = queueName.split('_')[0]
+    plantID = queueName.split('_')[1]
+    return userID, plantID
+    
 @bot.message_handler(commands=['start'])
 def first_start(message):
     # create table dynamodb
@@ -132,10 +135,8 @@ def first_start(message):
         print(e)
     cid = message.chat.id
     name = message.chat.username
-    bot.send_message(
-        cid, f"Hi, *{name}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
-    bot.send_message(
-        cid, f"We start with three predefined 🌱plants: _Basil_ | _Tomato_ | _Chilli_.", parse_mode='Markdown')
+    bot.send_message(cid, f"Hi, *{name}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
+    #bot.send_message(cid, f"We start with three predefined 🌱plants: _Basil_ | _Tomato_ | _Chilli_.", parse_mode='Markdown')
 
     # Create queue for each plant and each user
     sqs = boto3.resource('sqs', endpoint_url=url)
@@ -168,61 +169,64 @@ def send_welcome(message):
 @bot.message_handler(commands=['plants'])
 def plants_command(message):
     cid = message.chat.id
-    # scan table and get all plants
     name_plant_list = []
-    measuredate_plant_list = []
 
-    test = query_data_dynamodb(
-        'greenhouse', 'cid-index', 'userID', str(message.chat.id))
+    test = query_data_dynamodb_gsi('greenhouse', 'cid-index', 'userID', str(message.chat.id))
     for item in test:
-        plants_dict = {
-            'id': item['id'],
-            'plant': item['plant'],
-            'temperature': item['temperature(°)'],
-            'moisture': item['moisture(%)'],
-            'light': item['light(lx)'],
-            'measure_date': item['measure_date']
-        }
+        plant, userID= split_queue_name(item['plant_id'])
+        name_plant_list.append(plant)
 
-        for key, value in plants_dict.items():
-            if key == 'plant':
-                name_plant_list.append(value)
-            # get last 3 measurements for each plant
-            if key == 'measure_date':
-                measuredate_plant_list.append(value)
-
-    unique = unique_item_list(name_plant_list)
-    one_string = ' 🌱 '.join(unique).upper()
-    bot.send_message(cid, f"Your plants in the greenhouse: {one_string}")
-
-
-@bot.message_handler(commands=['oSensor'])
-def oSensor_command(message):
-    bot.reply_to(message, f"Hai scelto il comando {message.text}")
+    if len(name_plant_list) == 0:
+        bot.send_message(cid, f"You have no plants, or there are no measurements available 😕")
+    else:
+        one_string = ' 🌱 '.join(name_plant_list).upper()
+        bot.send_message(cid, f"Your plants in the 🎍 greenhouse: {one_string}")
 
 
 @bot.message_handler(commands=['iSensor'])
 def iSensor_command(message):
-    #invoke lambda function
     cid = message.chat.id
-    lambda_client = boto3.client('lambda')
+    lambda_client = boto3.client('lambda', endpoint_url=url)
     response = lambda_client.invoke(
-        FunctionName='iot_lambda_function',
+        FunctionName='passDataInDynamo',
         InvocationType='RequestResponse',
         Payload=json.dumps({'cid': cid})
     )
-    print(response)
-    bot.reply_to(message, f"Hai scelto il comando {message.text}")
+    print(f"Lambda function \"passDataInDynamo\" return: {response['StatusCode']} status code")
+    bot.send_message(cid, f"Data loaded!")
 
+@bot.message_handler(commands=['oSensor'])
+def oSensor_command(message):
+    cid = message.chat.id
+    lambda_client = boto3.client('lambda', endpoint_url=url)
+    responseLambda = lambda_client.invoke(
+        FunctionName='activeOutputSensor',
+        InvocationType='RequestResponse',
+        Payload=json.dumps({'cid': cid})
+    )
+    
+    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
+    measurementTable = dynamodb.Table('measurement')
+    response = measurementTable.scan()
+    for item in response['Items']:
+        sensor, userID= split_queue_name(item['sensor_id'])
+        bot.send_message(cid, f"Active output sensor: 💥 {sensor} ➡ {item['plant']}")
+
+    print(f"Lambda function \"activeOutputSensor\" return: {responseLambda['StatusCode']} status code")
 
 @bot.message_handler(commands=['ONSensor'])
 def ONSensor_command(message):
     bot.reply_to(message, f"Hai scelto il comando {message.text}")
 
-
 @bot.message_handler(commands=['OFFSensor'])
 def OFFSensor_command(message):
-    bot.reply_to(message, f"Hai scelto il comando {message.text}")
+    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
+    measurementTable = dynamodb.Table('measurement')
+    response = measurementTable.scan()
+    items = response['Items']
+    for item in items:
+        measurementTable.delete_item(Key={'measureID': item['measureID']})
+    bot.reply_to(message, f"All actuators deactivated")
 
 
 @bot.message_handler(commands=['clean'])
@@ -238,7 +242,7 @@ def clean_command(message):
     response = measurementTable.scan()
     items = response['Items']
     for item in items:
-        greenhouseTable.delete_item(Key={'measureID': item['measureID']})
+        measurementTable.delete_item(Key={'measureID': item['measureID']})
     bot.reply_to(
         message, f"All item removed in GREENHOUSE and MEASUREMENT tables")
 
