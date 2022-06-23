@@ -29,6 +29,7 @@ on the cultivation of pot plants.
 
 Sensors, placed inside the small balcony greenhouse, collect data and send it to a queue. The data will be routed to two lambda functions: the first function will take care of storing the data in DynamoDB, the second will take care of sending the data, via telegram channel(or bot), to the end user. In addition, this function can activate/deactivate the output sensors by capturing a particular state of the data.
 
+Start Telegram bot:
 ```python
 python settings/telegram-bot/telegramBot.py
 ```
