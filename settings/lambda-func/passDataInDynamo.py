@@ -47,7 +47,6 @@ def lambda_handler(event, context):
                     print(content)
                     measure_date = datetime.datetime.strptime(content['measure_date'], "%d-%m-%Y %H:%M:%S")
 
-                    message.delete()
                     item = {
                         'plant_id':plant_id,
                         'userID': content['userID'],
@@ -57,5 +56,6 @@ def lambda_handler(event, context):
                         'light(lx)': content['light(lx)']
                     }
                     greenhouseTable.put_item(Item=item)
+                    message.delete()
 
 #lambda_handler(None, None)

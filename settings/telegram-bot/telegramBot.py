@@ -147,8 +147,15 @@ def first_start(message):
         queue = sqs.create_queue(QueueName=qname)
         print(queue.url)
 
-    bot.send_message(
-        cid, f"Greenhouse initialised! Now type _/help_ to get the list of commands.", parse_mode='Markdown')
+    bot.send_message(cid, f"Greenhouse initialised! Now type _/help_ to get the list of commands.", parse_mode='Markdown')
+    
+    #create s3 bucket
+    s3 = boto3.resource('s3', endpoint_url=url)
+    try:
+        s3.create_bucket(Bucket='log-bucket', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+    except Exception as e:
+        print(e)
+    print("Bucket for logs created")
 
 @bot.message_handler(commands=['help'])
 def send_welcome(message):
@@ -157,10 +164,11 @@ def send_welcome(message):
 
     ❓/help - Write this help
     🌱/plants - Return user's plants
-    🌡/iSensor - write this helpXXXX
-    💧/oSensor - write this helpXXXX
+    🌡/iSensor - Get latest measurements
+    💧/oSensor - Active actuators if values require it
     🔛/ONactuators - Activate all actuators
-    🚫/OFFactuators - Deactivate all actuators\
+    🚫/OFFactuators - Deactivate all actuators
+    📈/getStatistic - Print plant statistics\
     """)
 
 @bot.message_handler(commands=['plants'])
@@ -179,6 +187,18 @@ def plants_command(message):
         one_string = ' 🌱 '.join(name_plant_list).upper()
         bot.send_message(cid, f"Your plants in the 🎍 greenhouse: {one_string}")
 
+
+@bot.message_handler(commands=['test'])
+def test_command(message):
+    cid = message.chat.id
+    lambda_client = boto3.client('lambda', endpoint_url=url)
+    response = lambda_client.invoke(
+        FunctionName='activeMonitoring',
+        InvocationType='RequestResponse',
+        Payload=json.dumps({'cid': cid})
+    )
+    print(f"Lambda function \"activeMonitoring\" return: {response['StatusCode']} status code")
+    bot.send_message(cid, f"Take lastest measurements for all plants")
 
 @bot.message_handler(commands=['iSensor'])
 def iSensor_command(message):
@@ -274,5 +294,9 @@ def end_command(message):
     dynamodb.Table('greenhouse').delete()
     dynamodb.Table('measurement').delete()
     bot.reply_to(message, f"Tables deleted")
+
+@bot.message_handler(commands=['getStatistic'])
+def getStatistic_command(message):
+    cid = message.chat.id
 
 bot.polling()
