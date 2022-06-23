@@ -15,7 +15,6 @@ def get_all_queues_name():
 
 queueNameList = get_all_queues_name()
 
-#split the queue name into userID and plantID
 def split_queue_name(queueName):
     userID = queueName.split('_')[0]
     plantID = queueName.split('_')[1]

@@ -53,5 +53,3 @@ def lambda_handler(event, context):
             measurementOutputSensorTable.put_item(Item=item)
         else:
             print(f"No need to activate lamp for plant: {plant}")
-
-#lambda_handler(None, None)

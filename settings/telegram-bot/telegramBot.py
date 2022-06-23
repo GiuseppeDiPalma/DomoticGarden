@@ -30,29 +30,7 @@ def create_table():
         {
             'AttributeName': 'plant_id',
             'AttributeType': 'S'
-        },
-        {
-            'AttributeName': 'userID',
-            'AttributeType': 'S'
         }
-    ],
-    GlobalSecondaryIndexes=[
-        {
-            'IndexName': 'cid-index',
-            'KeySchema': [
-                {
-                    'AttributeName': 'userID',
-                    'KeyType': 'HASH',
-                },
-            ],
-            'Projection': {
-                'ProjectionType': 'ALL',
-            },
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 2,
-                'WriteCapacityUnits': 2,
-            }
-        },
     ],
     ProvisionedThroughput={
         'ReadCapacityUnits': 10,
@@ -88,48 +66,22 @@ def query_data_dynamodb(table):
     response = measurementTable.scan()
     return response['Items']
 
-def query_data_dynamodb_gsi(table, indexName, columnName, userID):
-    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
-    table = dynamodb.Table(table)
-    response = table.query(
-        IndexName=indexName,
-        KeyConditionExpression=Key(columnName).eq(userID)
-    )
-    return response['Items']
-
 def read_data(table):
     response = table.scan()
     items = response['Items']
     return items
 
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
-
-def loadData(cid):
-    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
-    greenhouseTable = dynamodb.Table('greenhouse')
-    for i in range(len(plants)):
-        measure_date = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        moisture = random.randint(0, 100)
-        light = random.randint(0, 100)
-        temperature = round(random.uniform(-5.0, 30.0), 2)
-        plant_id = plants[i] + '_' + str(cid)
-        item = {
-            'plant_id': str(plant_id),
-            'userID': str(cid),
-            'measure_date': str(measure_date),
-            'temperature(°)': str(temperature),
-            'moisture(%)': str(moisture),
-            'light(lx)': str(light)
-        }
-        greenhouseTable.put_item(Item=item)
-        print("Add item: ", item)
-
 def split_queue_name(queueName):
     userID = queueName.split('_')[0]
     plantID = queueName.split('_')[1]
     return userID, plantID
-    
+
+def split3_queue_name(queueName):
+    userID = queueName.split('_')[0]
+    plantID = queueName.split('_')[1]
+    plant_name = queueName.split('_')[2]
+    return userID, plantID, plant_name
+
 @bot.message_handler(commands=['start'])
 def first_start(message):
     # create table dynamodb
@@ -148,14 +100,6 @@ def first_start(message):
         print(queue.url)
 
     bot.send_message(cid, f"Greenhouse initialised! Now type _/help_ to get the list of commands.", parse_mode='Markdown')
-    
-    #create s3 bucket
-    s3 = boto3.resource('s3', endpoint_url=url)
-    try:
-        s3.create_bucket(Bucket='log-bucket', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
-    except Exception as e:
-        print(e)
-    print("Bucket for logs created")
 
 @bot.message_handler(commands=['help'])
 def send_welcome(message):
@@ -171,23 +115,6 @@ def send_welcome(message):
     📈/getStatistic - Print plant statistics\
     """)
 
-@bot.message_handler(commands=['plants'])
-def plants_command(message):
-    cid = message.chat.id
-    name_plant_list = []
-
-    test = query_data_dynamodb_gsi('greenhouse', 'cid-index', 'userID', str(message.chat.id))
-    for item in test:
-        plant, userID= split_queue_name(item['plant_id'])
-        name_plant_list.append(plant)
-
-    if len(name_plant_list) == 0:
-        bot.send_message(cid, f"You have no plants, or there are no measurements available 😕")
-    else:
-        one_string = ' 🌱 '.join(name_plant_list).upper()
-        bot.send_message(cid, f"Your plants in the 🎍 greenhouse: {one_string}")
-
-
 @bot.message_handler(commands=['test'])
 def test_command(message):
     cid = message.chat.id
@@ -199,6 +126,20 @@ def test_command(message):
     )
     print(f"Lambda function \"activeMonitoring\" return: {response['StatusCode']} status code")
     bot.send_message(cid, f"Take lastest measurements for all plants")
+
+@bot.message_handler(commands=['plants'])
+def plants_command(message):
+    cid = message.chat.id
+    name_plant_list = []
+
+    data = query_data_dynamodb('greenhouse')
+    for item in data:
+        plant, userID= split_queue_name(item['plant_id'])
+        name_plant_list.append(plant)
+        bot.send_message(cid, f"🌱 {plant} 🌡: {item['temperature(°)']}, 💧: {item['moisture(%)']}, ☀: {item['light(lx)']}", parse_mode='Markdown')
+
+    if len(name_plant_list) == 0:
+        bot.send_message(cid, f"You have no plants, or there are no measurements available 😕")
 
 @bot.message_handler(commands=['iSensor'])
 def iSensor_command(message):
@@ -224,8 +165,8 @@ def oSensor_command(message):
     bot.send_message(cid, f"Active actuators: ")
     responseMeasurementTable = query_data_dynamodb('measurement')
     for item in responseMeasurementTable:
-        sensor, userID= split_queue_name(item['sensor_id'])
-        bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{item['plant']}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
+        sensor, userID, plant_name= split3_queue_name(item['sensor_id'])
+        bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{plant_name}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
 
     print(f"Lambda function \"activeOutputSensor\" return: {responseLambda['StatusCode']} status code")
 
@@ -289,11 +230,10 @@ def clean_command(message):
 
 @bot.message_handler(commands=['end'])
 def end_command(message):
-    # delete all tables
     dynamodb = boto3.resource('dynamodb', endpoint_url=url)
     dynamodb.Table('greenhouse').delete()
     dynamodb.Table('measurement').delete()
-    bot.reply_to(message, f"Tables deleted")
+    bot.reply_to(message, f"All tables deleted!")
 
 @bot.message_handler(commands=['getStatistic'])
 def getStatistic_command(message):

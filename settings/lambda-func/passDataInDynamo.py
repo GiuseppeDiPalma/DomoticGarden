@@ -1,4 +1,4 @@
-import string, random, datetime, json
+import string, random, datetime, json, io, csv
 import boto3
 
 #split the queue name into userID and plantID
@@ -6,9 +6,6 @@ def split_queue_name(queueName):
     userID = queueName.split('_')[0]
     plantID = queueName.split('_')[1]
     return userID, plantID
-
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
 
 def lambda_handler(event, context):
     url = 'http://localhost:4566'
@@ -35,7 +32,6 @@ def lambda_handler(event, context):
         queue = sqs.get_queue_by_name(QueueName=plant)
         messages = []
         while True:
-            # response = queue.receive_messages(MaxNumberOfMessages=10, VisibilityTimeout=10, WaitTimeSeconds=10)
             response = queue.receive_messages()
             if len(response) == 0:
                 print(f'NO MESSAGE FOUND ON QUEUE: [{plant}]')
@@ -57,5 +53,3 @@ def lambda_handler(event, context):
                     }
                     greenhouseTable.put_item(Item=item)
                     message.delete()
-
-#lambda_handler(None, None)
