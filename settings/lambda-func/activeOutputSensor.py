@@ -32,32 +32,26 @@ def lambda_handler(event, context):
 
         #per regolare umidità attiviamo innaffiatoio
         if moisture > 50:
-            randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+            #randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
             item = {
-                'sensor_id': 'Sprinkler' + '_' + str(userID),
+                'sensor_id': 'Sprinkler' + '_' + str(userID) + '_' + str(plant),
                 'activationDate': str(activationDate),
-                'plant': plant,
-                'state': 'ON',
-                'lifetime': str(random.randint(0,10))+'min',
-                'measureID': str(randomId)
-            }
+                'lifetime': str(random.randint(1,10))+'min'
+                }
             measurementOutputSensorTable.put_item(Item=item)
         else:
             print(f"No need to activate sprinkler for plant: {plant}")
 
         #per regolare temperatura attiviamo lampada
         if temperature < 15:
-            randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+            #randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
             item = {
-                'sensor_id': 'lamp'+ '_' + str(userID),
+                'sensor_id': 'lamp'+ '_' + str(userID) + '_' + str(plant),
                 'activationDate': str(activationDate),
-                'plant': plant,
-                'state': 'ON',
-                'lifetime': str(random.randint(0,10))+'min',
-                'measureID': str(randomId)
-            }
+                'lifetime': str(random.randint(1,10))+'min'
+                }
             measurementOutputSensorTable.put_item(Item=item)
         else:
             print(f"No need to activate lamp for plant: {plant}")
 
-lambda_handler(None, None)
+#lambda_handler(None, None)

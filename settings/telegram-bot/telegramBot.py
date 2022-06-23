@@ -4,6 +4,10 @@ import os, datetime, random, string, json
 import telebot
 import boto3
 
+# Extra commands
+    #/clean - clear all table
+    #/end - delete all tables
+
 load_dotenv()
 plants = ['basil', 'chilli', 'tomato']
 TOKEN = os.environ['TOKEN']
@@ -136,8 +140,6 @@ def first_start(message):
     cid = message.chat.id
     name = message.chat.username
     bot.send_message(cid, f"Hi, *{name}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
-    #bot.send_message(cid, f"We start with three predefined 🌱plants: _Basil_ | _Tomato_ | _Chilli_.", parse_mode='Markdown')
-
     # Create queue for each plant and each user
     sqs = boto3.resource('sqs', endpoint_url=url)
     for plant in plants:
@@ -148,23 +150,18 @@ def first_start(message):
     bot.send_message(
         cid, f"Greenhouse initialised! Now type _/help_ to get the list of commands.", parse_mode='Markdown')
 
-
 @bot.message_handler(commands=['help'])
 def send_welcome(message):
     bot.reply_to(message, """\
     Hi 👋, now you can manage your home greenhouse with ease, choose a command!
 
-    ❓/help - write this help
-    🌱/plants - write this help
-    💧/oSensor - write this help
-    🌡/iSensor - write this help
-    🔛/ONSensor - write this help
-    🚫/OFFSensor - write this help
-    🧹/clean - 
-    /end - delete tables\
+    ❓/help - Write this help
+    🌱/plants - Return user's plants
+    🌡/iSensor - write this helpXXXX
+    💧/oSensor - write this helpXXXX
+    🔛/ONactuators - Activate all actuators
+    🚫/OFFactuators - Deactivate all actuators\
     """)
-    #bot.send_message(cid, "Howdy, how are you doing?")
-
 
 @bot.message_handler(commands=['plants'])
 def plants_command(message):
@@ -198,36 +195,60 @@ def iSensor_command(message):
 @bot.message_handler(commands=['oSensor'])
 def oSensor_command(message):
     cid = message.chat.id
-    lambda_client = boto3.client('lambda', endpoint_url=url)
-    responseLambda = lambda_client.invoke(
+    responseLambda = boto3.client('lambda', endpoint_url=url)
+    responseLambda = responseLambda.invoke(
         FunctionName='activeOutputSensor',
         InvocationType='RequestResponse',
         Payload=json.dumps({'cid': cid})
     )
-    
-    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
-    measurementTable = dynamodb.Table('measurement')
-    response = measurementTable.scan()
-    for item in response['Items']:
+    bot.send_message(cid, f"Active actuators: ")
+    responseMeasurementTable = query_data_dynamodb('measurement')
+    for item in responseMeasurementTable:
         sensor, userID= split_queue_name(item['sensor_id'])
-        bot.send_message(cid, f"Active output sensor: 💥 {sensor} ➡ {item['plant']}")
+        bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{item['plant']}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
 
     print(f"Lambda function \"activeOutputSensor\" return: {responseLambda['StatusCode']} status code")
 
-@bot.message_handler(commands=['ONSensor'])
+@bot.message_handler(commands=['ONactuators'])
 def ONSensor_command(message):
-    bot.reply_to(message, f"Hai scelto il comando {message.text}")
+    cid = message.chat.id
+    dynamodb = boto3.resource('dynamodb', endpoint_url=url)
+    responseGreenhouse = query_data_dynamodb('greenhouse')
+    responseMeasurementTable = dynamodb.Table('measurement')
 
-@bot.message_handler(commands=['OFFSensor'])
+    activationDate = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
+    for item in responseGreenhouse:
+        plant_name, userID= split_queue_name(item['plant_id'])
+        plants = []
+        plants.append(plant_name)
+        if userID == str(cid):
+            for plant in plants:
+                item_sprinkler = {
+                    'sensor_id': 'Sprinkler' + '_' + str(userID) + '_' + str(plant),
+                    'activationDate': str(activationDate),
+                    'lifetime': str(random.randint(1,10))+'min'
+                }
+                responseMeasurementTable.put_item(Item=item_sprinkler)
+                item_lamp = {
+                    'sensor_id': 'Lamp' + '_' + str(userID) + '_' + str(plant),
+                    'activationDate': str(activationDate),
+                    'lifetime': str(random.randint(1,10))+'min'
+                }
+                responseMeasurementTable.put_item(Item=item_lamp)
+    
+    bot.send_message(cid, f"🟢 All actuators activated 🟢")
+
+@bot.message_handler(commands=['OFFactuators'])
 def OFFSensor_command(message):
+    cid = message.chat.id
     dynamodb = boto3.resource('dynamodb', endpoint_url=url)
     measurementTable = dynamodb.Table('measurement')
     response = measurementTable.scan()
     items = response['Items']
     for item in items:
-        measurementTable.delete_item(Key={'measureID': item['measureID']})
-    bot.reply_to(message, f"All actuators deactivated")
-
+        measurementTable.delete_item(Key={'sensor_id': item['sensor_id']})
+    bot.send_message(cid, f"❌ All actuators deactivated ❌")
 
 @bot.message_handler(commands=['clean'])
 def clean_command(message):
@@ -236,16 +257,15 @@ def clean_command(message):
     response = greenhouseTable.scan()
     items = response['Items']
     for item in items:
-        greenhouseTable.delete_item(Key={'id': item['id']})
+        greenhouseTable.delete_item(Key={'plant_id': item['plant_id']})
 
     measurementTable = dynamodb.Table('measurement')
     response = measurementTable.scan()
     items = response['Items']
     for item in items:
-        measurementTable.delete_item(Key={'measureID': item['measureID']})
+        measurementTable.delete_item(Key={'sensor_id': item['sensor_id']})
     bot.reply_to(
         message, f"All item removed in GREENHOUSE and MEASUREMENT tables")
-
 
 @bot.message_handler(commands=['end'])
 def end_command(message):
@@ -254,6 +274,5 @@ def end_command(message):
     dynamodb.Table('greenhouse').delete()
     dynamodb.Table('measurement').delete()
     bot.reply_to(message, f"Tables deleted")
-
 
 bot.polling()
