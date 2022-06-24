@@ -68,15 +68,15 @@ def query_data_dynamodb(table):
     response = measurementTable.scan()
     return response['Items']
 
-def split_queue_name(queueName):
-    userID = queueName.split('_')[0]
-    plantID = queueName.split('_')[1]
+def split(string):
+    userID = string.split('_')[0]
+    plantID = string.split('_')[1]
     return userID, plantID
 
-def split3_queue_name(queueName):
-    userID = queueName.split('_')[0]
-    plantID = queueName.split('_')[1]
-    plant_name = queueName.split('_')[2]
+def split3(string):
+    userID = string.split('_')[0]
+    plantID = string.split('_')[1]
+    plant_name = string.split('_')[2]
     return userID, plantID, plant_name
 
 @bot.message_handler(commands=['start'])
@@ -86,7 +86,7 @@ def first_start(message):
     except Exception as e:
         print(e)
     cid = message.chat.id
-    
+
     bot.send_message(cid, f"Hi, *{message.chat.username}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
 
     sqs = boto3.resource('sqs', endpoint_url=url)
@@ -104,8 +104,8 @@ def send_welcome(message):
 
     ❓/help - Write this help
     🌱/plants - Return user's plants
-    🌡/iSensor - Get latest measurements
-    💧/oSensor - Active actuators if values require it
+    🌡/sensor - Get latest measurements
+    💧/actuator - Active actuators if values require it
     🔛/ONactuators - Activate all actuators
     🚫/OFFactuators - Deactivate all actuators\
     """)
@@ -129,15 +129,15 @@ def plants_command(message):
 
     data = query_data_dynamodb('greenhouse')
     for item in data:
-        plant, userID= split_queue_name(item['plant_id'])
+        plant, userID= split(item['plant_id'])
         if userID == str(cid):
             name_plant_list.append(plant)
-            bot.send_message(cid, f"🌱 {plant} 🌡: {item['temperature(°)']}°, 💧: {item['moisture(%)']}%, ☀: {item['light(lx)']}lx", parse_mode='Markdown')
+            bot.send_message(cid, f"🌱 _{plant}_ 🌡: {item['temperature(°)']}°, 💧: {item['moisture(%)']}%, ☀: {item['light(lx)']}lx", parse_mode='Markdown')
 
     if len(name_plant_list) == 0:
         bot.send_message(cid, f"You have no plants, or there are no measurements available 😕")
 
-@bot.message_handler(commands=['iSensor'])
+@bot.message_handler(commands=['sensor'])
 def iSensor_command(message):
     cid = message.chat.id
     lambda_client = boto3.client('lambda', endpoint_url=url)
@@ -149,7 +149,7 @@ def iSensor_command(message):
     print(f"Lambda function \"passDataInDynamo\" return: {response['StatusCode']} status code")
     bot.send_message(cid, f"Data loaded!")
 
-@bot.message_handler(commands=['oSensor'])
+@bot.message_handler(commands=['actuator'])
 def oSensor_command(message):
     cid = message.chat.id
     responseLambda = boto3.client('lambda', endpoint_url=url)
@@ -161,7 +161,7 @@ def oSensor_command(message):
     bot.send_message(cid, f"Active actuators: ")
     responseMeasurementTable = query_data_dynamodb('measurement')
     for item in responseMeasurementTable:
-        sensor, userID, plant_name= split3_queue_name(item['sensor_id'])
+        sensor, userID, plant_name= split3(item['sensor_id'])
         if userID == str(cid):
             bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{plant_name}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
 
@@ -177,19 +177,19 @@ def ONSensor_command(message):
     activationDate = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
     for item in responseGreenhouse:
-        plant_name, userID= split_queue_name(item['plant_id'])
+        plant_name, userID= split(item['plant_id'])
         plants = []
         plants.append(plant_name)
         if userID == str(cid):
             for plant in plants:
                 item_sprinkler = {
-                    'sensor_id': 'Sprinkler' + '_' + str(userID) + '_' + str(plant),
+                    'sensor_id': 'sprinkler' + '_' + str(userID) + '_' + str(plant),
                     'activationDate': str(activationDate),
                     'lifetime': str(random.randint(1,10))+'min'
                 }
                 responseMeasurementTable.put_item(Item=item_sprinkler)
                 item_lamp = {
-                    'sensor_id': 'Lamp' + '_' + str(userID) + '_' + str(plant),
+                    'sensor_id': 'lamp' + '_' + str(userID) + '_' + str(plant),
                     'activationDate': str(activationDate),
                     'lifetime': str(random.randint(1,10))+'min'
                 }
@@ -205,7 +205,8 @@ def OFFSensor_command(message):
     response = measurementTable.scan()
     items = response['Items']
     for item in items:
-        if item['userID'] == str(cid):
+        plant_name, userID= split(item['sensor_id'])
+        if userID == str(cid):
             measurementTable.delete_item(Key={'sensor_id': item['sensor_id']})
     bot.send_message(cid, f"❌ All actuators deactivated ❌")
 

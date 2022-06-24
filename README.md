@@ -16,25 +16,27 @@ With these sensors I can monitor:
 * ☀ Light Intensity (Luminosity);
 * 💧 Soil moisture (Soil moisture).
 
-After collecting this data, the idea is to activate other sensors, placed inside the greenhouse.
-The sensors inside the greenhouse are:
+After collecting this data, the idea is to activate actuators, placed inside the greenhouse.
+The actuators inside the greenhouse are, for each plant:
 
 * 💡 Lamp;
 * ⛲ Sprinkler;
 
-These sensors are activated for a specific purpose, based on certain information about the cultivation of pot plants.
+These actuators are activated for a specific purpose, based on certain information about the cultivation of pot plants.
 on the cultivation of pot plants.
 
 #### 🎈 How does it work?
 
-Sensors, placed inside the small balcony greenhouse, collect data and send it to a queue. The data will be routed to two lambda functions: the first function will take care of storing the data in DynamoDB, the second will take care of sending the data, via telegram channel(or bot), to the end user. In addition, this function can activate/deactivate the output sensors by capturing a particular state of the data.
+Sensors, placed inside each plant in the greenhouse, collect data and publish them on tails. The data is collected by a lambda function and stored in the database (dynamodb).  Then another lambda function reads the data into the database and decides whether to activate the actuators in the plants. There is one last function that again reads the data of the active actuators and if their duration is over, sets them to off.
+
+Everything can be managed and monitored via a telegram bot (![@domoticgarden_bot](https://t.me/domoticgarden_bot)). The bot can manage several users at the same time, allowing the individual user to obtain information only on his or her greenhouse. The user can control the plants in his greenhouse, can force the reading of data, can control active actuators, on/off all actuators.
 
 Clone repository:
 ```bash
 https://github.com/GiuseppeDiPalma/DomoticGarden
 ```
 
-Run [localStack](https://localstack.cloud/):
+Launch [Docker]([https://](https://www.docker.com/)) run [localStack](https://localstack.cloud/):
 ```bash
 docker run --rm -it -p 4566:4566 -p 4571:4571 localstack/localstack
 ```
@@ -44,7 +46,7 @@ Start Telegram bot:
 python settings/telegram-bot/telegramBot.py
 ```
 
-On bot [telegramBot](https://t.me/domoticgarden_bot) start, in case it was already started give **/start**
+On bot [@domoticgarden_bot](https://t.me/domoticgarden_bot) start, in case it was already started give **/start**
 
 Upload lambda function and test it:
 ```bash
@@ -59,12 +61,20 @@ Upload lambda function and test it:
 
 #### 🧰 Toolbox
 
-* 3-input sensors for plant;
-* 2-actuator sensors for plant;
-* Amazon SQS to collect and distribute data;
-* Telegram bot for monitor and run real-time lambda.
+- 3-input sensors for plant;
+- 2-actuator sensors for plant;
+- Amazon SQS to collect and distribute data;
+- Telegram bot for monitor and run real-time lambda.
 
-##### 🕵️‍♂️ Implementation details
+#### 🕵️‍♂️ Implementation details
+
+**TelegramBot commands**
+- _/help_ - Write hel message
+- _/plants_ - Return user's plants
+- _/sensor_ - Get latest measurements (lambda func: passDataInDynamo)
+- _/actuator_ - Active actuators if values require it (lambda func: activeOutputSensor)
+- _/ONactuators_ - Activate all actuators
+- _/OFFactuators_ - Deactivate all actuators
 
 **Lambda functions**
 
@@ -72,3 +82,5 @@ Upload lambda function and test it:
 - _**passDataInDynamo**_: Reads messages from the queue(s) and adds data to the dynamodb.
 - _**activeOutputSensor**_: It reads data from the dynamodb and decides whether to activate the actuators.
 - _**switchOffActuator**_: Switches actuators off according to duration.
+
+**Nerd details**
