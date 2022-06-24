@@ -9,6 +9,7 @@ import boto3
     #/end - delete all tables
 
 load_dotenv()
+
 plants = ['basil', 'chilli', 'tomato']
 TOKEN = os.environ['TOKEN']
 CHAT_ID = os.environ['CHAT_ID']
@@ -66,11 +67,6 @@ def query_data_dynamodb(table):
     response = measurementTable.scan()
     return response['Items']
 
-def read_data(table):
-    response = table.scan()
-    items = response['Items']
-    return items
-
 def split_queue_name(queueName):
     userID = queueName.split('_')[0]
     plantID = queueName.split('_')[1]
@@ -92,7 +88,7 @@ def first_start(message):
     cid = message.chat.id
     name = message.chat.username
     bot.send_message(cid, f"Hi, *{name}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
-    # Create queue for each plant and each user
+    # Create queue for each plant user
     sqs = boto3.resource('sqs', endpoint_url=url)
     for plant in plants:
         qname = plant+'_'+str(cid)
@@ -111,8 +107,7 @@ def send_welcome(message):
     🌡/iSensor - Get latest measurements
     💧/oSensor - Active actuators if values require it
     🔛/ONactuators - Activate all actuators
-    🚫/OFFactuators - Deactivate all actuators
-    📈/getStatistic - Print plant statistics\
+    🚫/OFFactuators - Deactivate all actuators\
     """)
 
 @bot.message_handler(commands=['test'])
@@ -135,8 +130,9 @@ def plants_command(message):
     data = query_data_dynamodb('greenhouse')
     for item in data:
         plant, userID= split_queue_name(item['plant_id'])
-        name_plant_list.append(plant)
-        bot.send_message(cid, f"🌱 {plant} 🌡: {item['temperature(°)']}, 💧: {item['moisture(%)']}, ☀: {item['light(lx)']}", parse_mode='Markdown')
+        if userID == str(cid):
+            name_plant_list.append(plant)
+            bot.send_message(cid, f"🌱 {plant} 🌡: {item['temperature(°)']}°, 💧: {item['moisture(%)']}%, ☀: {item['light(lx)']}lx", parse_mode='Markdown')
 
     if len(name_plant_list) == 0:
         bot.send_message(cid, f"You have no plants, or there are no measurements available 😕")
@@ -166,7 +162,8 @@ def oSensor_command(message):
     responseMeasurementTable = query_data_dynamodb('measurement')
     for item in responseMeasurementTable:
         sensor, userID, plant_name= split3_queue_name(item['sensor_id'])
-        bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{plant_name}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
+        if userID == str(cid):
+            bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{plant_name}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
 
     print(f"Lambda function \"activeOutputSensor\" return: {responseLambda['StatusCode']} status code")
 
@@ -231,12 +228,22 @@ def clean_command(message):
 @bot.message_handler(commands=['end'])
 def end_command(message):
     dynamodb = boto3.resource('dynamodb', endpoint_url=url)
-    dynamodb.Table('greenhouse').delete()
-    dynamodb.Table('measurement').delete()
-    bot.reply_to(message, f"All tables deleted!")
-
-@bot.message_handler(commands=['getStatistic'])
-def getStatistic_command(message):
-    cid = message.chat.id
+    try:
+        #delete dynamodb table
+        dynamodb.Table('greenhouse').delete()
+        dynamodb.Table('measurement').delete()
+        bot.send_message(message.chat.id, f"All tables deleted!")
+    except:
+        bot.send_message(message.chat.id, f"No tables found!")
+    try:
+        #delete all queues
+        sqs = boto3.client('sqs', endpoint_url=url)
+        queues = sqs.list_queues()['QueueUrls']
+        for queue in queues:
+            print(queue)
+            sqs.delete_queue(QueueUrl=queue)
+        bot.send_message(message.chat.id, f"All queues deleted!")
+    except:
+        bot.send_message(message.chat.id, f"No queues found!")
 
 bot.polling()
