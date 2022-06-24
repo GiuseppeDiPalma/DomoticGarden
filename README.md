@@ -47,13 +47,8 @@ python settings/telegram-bot/telegramBot.py
 On bot [telegramBot](https://t.me/domoticgarden_bot) start, in case it was already started give **/start**
 
 Upload lambda function and test it:
-```python
-python settings/telegram-bot/telegramBot.py
-```
-
-To simulate the measurements of home automation devices manually give: 
-```python
-python settings/iotDevice.py
+```bash
+./startAWSres.sh
 ```
 
 #### This is a view of the general infrastructure
@@ -64,9 +59,16 @@ python settings/iotDevice.py
 
 #### 🧰 Toolbox
 
-* 3-input sensors;
-* 2-output sensors;
+* 3-input sensors for plant;
+* 2-actuator sensors for plant;
 * Amazon SQS to collect and distribute data;
-* Lambda to save data in DynamoDB;
-* Lambda to send data in Telegram channel;
-* Lambda to activate 3-out sensors.
+* Telegram bot for monitor and run real-time lambda.
+
+##### 🕵️‍♂️ Implementation details
+
+**Lambda functions**
+
+- _**activeMonitoring**_: It randomly generates data (taken from the sensors on the plants), then publishes a message on the queue of the sensor.
+- _**passDataInDynamo**_: Reads messages from the queue(s) and adds data to the dynamodb.
+- _**activeOutputSensor**_: It reads data from the dynamodb and decides whether to activate the actuators.
+- _**switchOffActuator**_: Switches actuators off according to duration.
