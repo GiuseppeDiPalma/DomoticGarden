@@ -6,6 +6,7 @@ import boto3
 
 # Extra commands
     #/clean - clear all table
+    #/test - call lambda activeMonitoring
     #/end - delete all tables
 
 load_dotenv()
@@ -80,15 +81,14 @@ def split3_queue_name(queueName):
 
 @bot.message_handler(commands=['start'])
 def first_start(message):
-    # create table dynamodb
     try:
         create_table()
     except Exception as e:
         print(e)
     cid = message.chat.id
-    name = message.chat.username
-    bot.send_message(cid, f"Hi, *{name}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
-    # Create queue for each plant user
+    
+    bot.send_message(cid, f"Hi, *{message.chat.username}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
+
     sqs = boto3.resource('sqs', endpoint_url=url)
     for plant in plants:
         qname = plant+'_'+str(cid)
@@ -205,7 +205,8 @@ def OFFSensor_command(message):
     response = measurementTable.scan()
     items = response['Items']
     for item in items:
-        measurementTable.delete_item(Key={'sensor_id': item['sensor_id']})
+        if item['userID'] == str(cid):
+            measurementTable.delete_item(Key={'sensor_id': item['sensor_id']})
     bot.send_message(cid, f"❌ All actuators deactivated ❌")
 
 @bot.message_handler(commands=['clean'])

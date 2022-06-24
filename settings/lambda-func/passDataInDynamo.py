@@ -24,7 +24,6 @@ def lambda_handler(event, context):
 
     greenhouseTable = dynamodb.Table('greenhouse')
 
-
     for plant in plantList:
         plant_name, plant_id = split_queue_name(plant)
         print(f"Plant: {plant_name} | ID: {plant_id}")

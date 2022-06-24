@@ -4,11 +4,6 @@ import datetime
 
 url='http://localhost:4566'
 
-def split_queue_name(string):
-    userID = string.split('_')[0]
-    plantID = string.split('_')[1]
-    return userID, plantID
-
 def query_data_dynamodb(table):
     dynamodb = boto3.resource('dynamodb', endpoint_url=url)
     measurementTable = dynamodb.Table(table)

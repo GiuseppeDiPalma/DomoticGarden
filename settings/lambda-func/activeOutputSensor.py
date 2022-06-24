@@ -22,7 +22,6 @@ def lambda_handler(event, context):
     
     for i in items:
         plant, userID= split_queue_name(i['plant_id'])
-        #sensor_id = plants[i] + '_' + str(userID)
         light = i['light(lx)']
         temperature = float(i['temperature(°)'])
         moisture = int(i['moisture(%)'])
@@ -30,9 +29,7 @@ def lambda_handler(event, context):
         print(f"Plant: {plant} Light: {light} Temperature: {temperature} Moisture: {moisture} Measure_date: {measure_date}")
         activationDate = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
-        #per regolare umidità attiviamo innaffiatoio
         if moisture > 50:
-            #randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
             item = {
                 'sensor_id': 'Sprinkler' + '_' + str(userID) + '_' + str(plant),
                 'activationDate': str(activationDate),
@@ -42,9 +39,7 @@ def lambda_handler(event, context):
         else:
             print(f"No need to activate sprinkler for plant: {plant}")
 
-        #per regolare temperatura attiviamo lampada
         if temperature < 15:
-            #randomId = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
             item = {
                 'sensor_id': 'lamp'+ '_' + str(userID) + '_' + str(plant),
                 'activationDate': str(activationDate),
