@@ -83,4 +83,8 @@ Upload lambda function and test it:
 - _**activeOutputSensor**_: It reads data from the dynamodb and decides whether to activate the actuators.
 - _**switchOffActuator**_: Switches actuators off according to duration.
 
-**Nerd details**
+#### In the future
+
+* Add sensor to take pictures of the plant at various times and use artificial intelligence to dose the plants.
+* Improving the user interface.
+* Allow users to be able to add plants from telegram bots.

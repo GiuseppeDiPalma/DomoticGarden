@@ -222,8 +222,7 @@ def clean_command(message):
     items = response['Items']
     for item in items:
         measurementTable.delete_item(Key={'sensor_id': item['sensor_id']})
-    bot.reply_to(
-        message, f"All item removed in GREENHOUSE and MEASUREMENT tables")
+    bot.reply_to(message, f"All item removed in GREENHOUSE and MEASUREMENT tables!")
 
 @bot.message_handler(commands=['end'])
 def end_command(message):
