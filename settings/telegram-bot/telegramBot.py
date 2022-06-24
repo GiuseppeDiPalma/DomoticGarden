@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
-from boto3.dynamodb.conditions import Key
-import os, datetime, random, string, json
+import os, datetime, random, json
 import telebot
 import boto3
 
@@ -11,7 +10,6 @@ import boto3
 
 load_dotenv()
 
-plants = ['basil', 'chilli', 'tomato']
 TOKEN = os.environ['TOKEN']
 CHAT_ID = os.environ['CHAT_ID']
 url = 'http://localhost:4566'
@@ -88,7 +86,7 @@ def first_start(message):
     cid = message.chat.id
 
     bot.send_message(cid, f"Hi, *{message.chat.username}* and welcome, I am building the infrastructure to run your home greenhouse! Give me a moment ☺", parse_mode='Markdown')
-
+    plants = ['basil', 'chilli', 'tomato']
     sqs = boto3.resource('sqs', endpoint_url=url)
     for plant in plants:
         qname = plant+'_'+str(cid)

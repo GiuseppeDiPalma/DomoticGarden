@@ -19,7 +19,7 @@ def transform_minutes(minutes):
     minutes = minutes % 60
     return datetime.timedelta(days=days, hours=hours, minutes=minutes)
 
-def get_difference_seconds(date_total, date2=datetime.datetime.now()):
+def get_difference_seconds(date_total, date2):
     difference = date_total - date2
     return difference.total_seconds()
 
@@ -38,11 +38,12 @@ def delete_item(table, key_id, key_value):
 def lambda_handler(event, context):
     data = query_data_dynamodb('measurement')
     for item in data:
-        transform = transform_minutes(item['lifetime'])
-        sum_date = sum_dates(item['activationDate'], transform)
-        diff_2 = get_difference_seconds(sum_date)
-        if diff_2 < 0:
-            print(f"{item['sensor_id']} is off")
+        str_to_datetime = transform_minutes(item['lifetime'])
+        sum = sum_dates(item['activationDate'], str_to_datetime)
+        diff = get_difference_seconds(sum, datetime.datetime.now())
+        #print(f"activationDate: {item['activationDate']} | lifetime: {str_to_datetime} | sum: {sum} | diff: {diff}")
+        if diff < 0:
+            print(f"{item['sensor_id']} verrà spento")
             delete_item('measurement', 'sensor_id', 'sensor_id')
         else:
-            print(f"{item['sensor_id']} is on")
+            print(f"{item['sensor_id']} resterà attivo, si spegnerà alle {sum}")

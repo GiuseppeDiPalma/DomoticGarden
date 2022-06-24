@@ -31,7 +31,7 @@ def lambda_handler(event, context):
 
         if moisture > 50:
             item = {
-                'sensor_id': 'Sprinkler' + '_' + str(userID) + '_' + str(plant),
+                'sensor_id': 'sprinkler' + '_' + str(userID) + '_' + str(plant),
                 'activationDate': str(activationDate),
                 'lifetime': str(random.randint(1,10))+'min'
                 }
