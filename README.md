@@ -10,7 +10,7 @@ Over the years I have always tried to grow plants (chilli, salad, basil, etc.). 
 The **DOMOTIC GARDEN 🎍** could solve this problem!
 
 My idea is to create a small greenhouse, capable of reproducing a functional ecosystem for the growth of different plants. With the use of sensors, placed in the greenhouse, I want to retrieve the parameters of the plants.
-With these sensors I can monitor:
+With these sensors, I can monitor:
 
 * 🌡Temperature (thermostat);
 * ☀ Light Intensity (Luminosity);
@@ -23,7 +23,6 @@ The actuators inside the greenhouse are, for each plant:
 * ⛲ Sprinkler;
 
 These actuators are activated for a specific purpose, based on certain information about the cultivation of pot plants.
-on the cultivation of pot plants.
 
 #### 🎈 How does it work?
 
