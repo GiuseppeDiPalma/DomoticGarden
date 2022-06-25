@@ -31,12 +31,23 @@ Sensors, placed inside each plant in the greenhouse, collect data and publish th
 
 Everything can be managed and monitored via a telegram bot (![@domoticgarden_bot](https://t.me/domoticgarden_bot)). The bot can manage several users at the same time, allowing the individual user to obtain information only on his or her greenhouse. The user can control the plants in his greenhouse, can force the reading of data, can control active actuators, on/off all actuators.
 
+##### Prerequisites
+
+- [Docker]([https://](https://www.docker.com/))
+- [AWS CLI]([https://](https://awscli.amazonaws.com/v2/documentation/api/latest/index.html))
+- [Boto3]([https://](https://github.com/boto/boto3))
+- [Telebot](https://github.com/eternnoir/pyTelegramBotAPI)
+
 Clone repository:
 ```bash
 https://github.com/GiuseppeDiPalma/DomoticGarden
 ```
 
-Launch [Docker]([https://](https://www.docker.com/)) run [localStack](https://localstack.cloud/):
+```bash
+pip install -r /path/to/requirements.txt
+```
+
+Launch [Docker](https://www.docker.com/) run [localStack](https://localstack.cloud/):
 ```bash
 docker run --rm -it -p 4566:4566 -p 4571:4571 localstack/localstack
 ```
