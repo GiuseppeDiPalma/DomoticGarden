@@ -33,9 +33,9 @@ Everything can be managed and monitored via a telegram bot (![@domoticgarden_bot
 
 ##### Prerequisites
 
-- [Docker]([https://](https://www.docker.com/))
-- [AWS CLI]([https://](https://awscli.amazonaws.com/v2/documentation/api/latest/index.html))
-- [Boto3]([https://](https://github.com/boto/boto3))
+- [Docker](https://www.docker.com/)
+- [AWS CLI](https://awscli.amazonaws.com/v2/documentation/api/latest/index.html)
+- [Boto3](https://github.com/boto/boto3)
 - [Telebot](https://github.com/eternnoir/pyTelegramBotAPI)
 
 Clone repository:
