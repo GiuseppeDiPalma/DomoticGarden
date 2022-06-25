@@ -156,14 +156,17 @@ def oSensor_command(message):
         InvocationType='RequestResponse',
         Payload=json.dumps({'cid': cid})
     )
-    bot.send_message(cid, f"Active actuators: ")
     responseMeasurementTable = query_data_dynamodb('measurement')
-    for item in responseMeasurementTable:
-        sensor, userID, plant_name= split3(item['sensor_id'])
-        if userID == str(cid):
-            bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{plant_name}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
+    if len(responseMeasurementTable) == 0:
+        bot.send_message(cid, f"❌ There are no active actuators ❌")
+    else:
+        bot.send_message(cid, f"Active actuators: ")
+        for item in responseMeasurementTable:
+            sensor, userID, plant_name= split3(item['sensor_id'])
+            if userID == str(cid):
+                bot.send_message(cid, f"🟢 _{sensor}_ ➡ _{plant_name}_ for {item['lifetime']} 🕐", parse_mode='Markdown')
 
-    print(f"Lambda function \"activeOutputSensor\" return: {responseLambda['StatusCode']} status code")
+    #print(f"Lambda function \"activeOutputSensor\" return: {responseLambda['StatusCode']} status code")
 
 @bot.message_handler(commands=['ONactuators'])
 def ONSensor_command(message):

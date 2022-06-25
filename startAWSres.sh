@@ -67,7 +67,7 @@ aws events put-targets \
 #passDataInDynamo
 aws events put-rule \
 --name passData \
---schedule-expression 'rate(5 minutes)' \
+--schedule-expression 'rate(4 minutes)' \
 --endpoint-url=http://localhost:4566
 
 aws lambda add-permission \
@@ -86,7 +86,7 @@ aws events put-targets \
 #activeOutputSensor actuators
 aws events put-rule \
 --name activeActuators \
---schedule-expression 'rate(7 minutes)' \
+--schedule-expression 'rate(5 minutes)' \
 --endpoint-url=http://localhost:4566
 
 aws lambda add-permission \
