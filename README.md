@@ -43,6 +43,7 @@ Clone repository:
 https://github.com/GiuseppeDiPalma/DomoticGarden
 ```
 
+Install python requirements
 ```bash
 pip install -r /path/to/requirements.txt
 ```
@@ -75,6 +76,7 @@ Upload lambda function and test it:
 - 3-input sensors for plant;
 - 2-actuator sensors for plant;
 - Amazon SQS to collect and distribute data;
+- Dynamodb to store data;
 - Telegram bot for monitor and run real-time lambda.
 
 #### 🕵️‍♂️ Implementation details
@@ -87,15 +89,16 @@ Upload lambda function and test it:
 - _/ONactuators_ - Activate all actuators
 - _/OFFactuators_ - Deactivate all actuators
 
-**Lambda functions**
+**Lambda functions** 
 
 - _**activeMonitoring**_: It randomly generates data (taken from the sensors on the plants), then publishes a message on the queue of the sensor.
 - _**passDataInDynamo**_: Reads messages from the queue(s) and adds data to the dynamodb.
 - _**activeOutputSensor**_: It reads data from the dynamodb and decides whether to activate the actuators.
 - _**switchOffActuator**_: Switches actuators off according to duration.
 
-#### In the future
+#### 🔮 In the future
 
 * Add sensor to take pictures of the plant at various times and use artificial intelligence to dose the plants.
 * Improving the user interface.
+* Generate graphs.
 * Allow users to be able to add plants from telegram bots.
