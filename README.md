@@ -64,6 +64,8 @@ Upload lambda function and test it:
 ./startAWSres.sh
 ```
 
+** ❗❗ After completing these steps above, wait 5 minutes, and play with the bot ❗❗**
+
 #### This is a view of the general infrastructure
 
 <p align="center">
