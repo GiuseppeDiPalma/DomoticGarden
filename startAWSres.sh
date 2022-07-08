@@ -120,3 +120,7 @@ aws events put-targets \
 --rule OFFactuators \
 --targets file://settings/targets/targets_switchOffactuator.json \
 --endpoint-url=http://localhost:4566
+
+#for show tables of dynamodb in browser
+####https://github.com/aaronshaf/dynamodb-admin
+####DYNAMO_ENDPOINT=http://0.0.0.0:4566 dynamodb-admin
